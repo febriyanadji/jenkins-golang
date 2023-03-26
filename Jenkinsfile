@@ -19,3 +19,7 @@ pipeline {
         }
     }
 }
+
+node {
+    checkout scm
+}
