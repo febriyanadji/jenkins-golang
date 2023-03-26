@@ -1,25 +1,39 @@
 pipeline {
     agent any
+    tools {
+        go 'golang'
+    }
+    environment {
+        CGO_ENABLED = 0
+    }
     stages {
-        stage('Build') {
+        stage('Preparation') {
             steps {
-                echo 'Building..'
-                ls -alh
+                git url: "https://github.com/febriyanadji/jenkins-golang", branch: 'main'
             }
         }
-        stage('Test') {
+        stage('unit-test') {
             steps {
-                echo 'Testing..'
+                sh 'go mod download'
+                sh 'go test -v'
             }
         }
-        stage('Deploy') {
+        stage('build-docker-image') {
             steps {
-                echo 'Deploying....'
+                script {
+                    sh 'docker build -t febriyanadji/http-golang-app:latest .'
+                }
+            }
+        }
+        stage('push-docker-image') {
+            steps{
+                script{
+                   withCredentials([string(credentialsId: 'dockerhub-pwd', variable: 'dockerhubpwd')]) {
+                    sh 'docker login -u febriyanadji -p ${dockerhubpwd}'
+                   }
+                   sh 'docker push febriyanadji/http-golang-app:latest'
+                }
             }
         }
     }
-}
-
-node {
-    checkout scm
 }
